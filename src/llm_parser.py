@@ -331,16 +331,55 @@ def _find_window(text):
     return hours or None
 
 def _find_factor(text):
+    """Extract the usable solar fraction remaining."""
     t = text.lower()
+
+    # Fraction phrases:
+    # "drop to one-fifth"    -> 0.20 remains
+    # "reduced by a quarter" -> 0.75 remains
     for phrase, value in _FRACTIONS.items():
         if phrase in t:
+            if re.search(
+                rf"(?:reduc(?:ed|tion)?\s+by|drop(?:ped)?\s+by|decreas(?:ed)?\s+by|cut\s+by)\s+(?:a\s+)?{re.escape(phrase)}",
+                t,
+            ):
+                return max(0.0, 1.0 - value)
+
             return value
-    pct = re.search(r"(\d{1,3}(?:\.\d+)?)\s*(?:%|percent)", t)
+
+    # Percentage phrases.
+    pct = re.search(
+        r"(\d{1,3}(?:\.\d+)?)\s*(?:%|percent)",
+        t,
+    )
+
     if pct:
         value = float(pct.group(1)) / 100.0
-        if re.search(r"reduc|drop by|decreas|less|cut", t) and "drop to" not in t:
+
+        before = t[:pct.start()]
+        after = t[pct.end():]
+
+        # Examples:
+        # "reduced by 80 percent" -> 20% remains
+        # "80 percent reduction"  -> 20% remains
+        reduction_amount = (
+            re.search(
+                r"(?:reduc(?:ed)?\s+by|drop(?:ped)?\s+by|decreas(?:ed)?\s+by|cut\s+by)\s*$",
+                before,
+            )
+            or re.match(
+                r"\s*(?:reduction|decrease|drop|cut)\b",
+                after,
+            )
+        )
+
+        if reduction_amount:
             return max(0.0, 1.0 - value)
+
+        # Otherwise the percentage is treated as the usable fraction:
+        # "drop to 20 percent" -> 20% remains
         return min(1.0, value)
+
     return None
 
 

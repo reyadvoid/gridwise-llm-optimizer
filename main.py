@@ -72,12 +72,23 @@ def optimize_energy():
         # 4. Replay the finished plan the way the judge will.
         if config.SELF_CHECK:
             problems = replay(
-                {"scenario_id": scenario_id, "operator_notes": notes,
-                 "hours": hours, "battery": battery},
-                response, directives,
+                {
+                    "scenario_id": scenario_id,
+                    "operator_notes": notes,
+                    "hours": hours,
+                    "battery": battery,
+                },
+                response,
+                directives,
             )
+
             if problems:
-                log.error("[%s] self-check failed: %s", request_id, problems[:5])
+                log.error(
+                    "[%s] self-check failed: %s",
+                    request_id,
+                    problems[:5],
+                )
+                raise RuntimeError("Internal schedule validation failed")
 
         log.info(
             "[%s] scenario=%s notes=%d source=%s applied=%d rejected=%d cost=%.2f %dms",

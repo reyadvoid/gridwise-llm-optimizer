@@ -41,9 +41,13 @@ def validate_request(data):
     if not isinstance(scenario_id, str) or not scenario_id.strip():
         raise RequestError("scenario_id must be a non-empty string", 400)
 
-    notes = data.get("operator_notes")
-    if not isinstance(notes, list) or not notes:
-        raise RequestError("operator_notes must be a non-empty array of strings", 400)
+   notes = data.get("operator_notes")
+
+if not isinstance(notes, list) or not 1 <= len(notes) <= 3:
+    raise RequestError(
+        "operator_notes must contain 1 to 3 non-empty strings",
+        400
+    )
     for i, note in enumerate(notes):
         if not isinstance(note, str) or not note.strip():
             raise RequestError(f"operator_notes[{i}] must be a non-empty string", 400)

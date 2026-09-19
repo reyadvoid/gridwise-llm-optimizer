@@ -283,6 +283,7 @@ def _find_window(text):
     """Best-effort start-inclusive / end-exclusive hour window."""
     t = text.lower()
     t = t.replace("noon", "12 pm").replace("midnight", "12 am")
+
     for word, num in _WORD_NUMBERS.items():
         t = re.sub(rf"\b{word}\b", str(num), t)
 
@@ -291,19 +292,43 @@ def _find_window(text):
         r"(?:-|to|until|till|through|and)\s*"
         r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?"
     )
+
     match = re.search(pattern, t)
+
     if not match:
         return None
-    tail = t[match.end():]
-    start = _to_24h(int(match.group(1)), match.group(3), tail)
-    end = _to_24h(int(match.group(4)), match.group(6), tail)
-    if match.group(3) is None and match.group(6) == "pm" and int(match.group(1)) < 12:
-        start = _to_24h(int(match.group(1)), "pm", "")
-    if end <= start:
-        end += 12
-    hours = [h for h in range(start, min(end, 24))]
-    return hours or None
 
+    tail = t[match.end():]
+
+    start = _to_24h(
+        int(match.group(1)),
+        match.group(3),
+        tail,
+    )
+
+    end = _to_24h(
+        int(match.group(4)),
+        match.group(6),
+        tail,
+    )
+
+    if (
+        match.group(3) is None
+        and match.group(6) == "pm"
+        and int(match.group(1)) < 12
+    ):
+        start = _to_24h(
+            int(match.group(1)),
+            "pm",
+            "",
+        )
+
+    if end <= start:
+        end += 24
+
+    hours = sorted({h % 24 for h in range(start, end)})
+
+    return hours or None
 
 def _find_factor(text):
     t = text.lower()

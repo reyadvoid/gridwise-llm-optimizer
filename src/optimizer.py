@@ -113,37 +113,21 @@ def _solve(hours, battery, directives, relax):
     return result.x, solar
 
 
-# Applied in order until the model becomes feasible. Valid judge scenarios
-# never need this; it exists so a contradictory request still returns a
-# schedule that obeys the physical rules instead of a 500.
-RELAXATION_ORDER = [
-    ("grid_cap", "grid import caps"),
-    ("reserve", "elevated battery reserve"),
-    ("no_charge", "no-charge window"),
-    ("no_discharge", "no-discharge window"),
-    ("neutrality", "end-of-day battery neutrality"),
-]
-
 
 def optimize_schedule(hours, battery, directives):
-    """Build the cheapest valid 24-hour plan.
+    """Build the cheapest valid 24-hour plan."""
 
-    Returns a dict with hourly_plan, totals, and any relaxations that were
-    needed to reach feasibility.
-    """
     hours = sorted(hours, key=lambda h: int(h["hour"]))
-    relax, dropped = set(), []
+
+    relax = set()
+    dropped = []
 
     solution = _solve(hours, battery, directives, relax)
-    for key, label in RELAXATION_ORDER:
-        if solution is not None:
-            break
-        relax.add(key)
-        dropped.append(label)
-        solution = _solve(hours, battery, directives, relax)
 
     if solution is None:
-        raise ValueError("No feasible 24-hour schedule exists for this scenario")
+        raise ValueError(
+            "No feasible 24-hour schedule exists for the validated directives"
+        )
 
     x, solar = solution
     capacity = float(battery["capacity_kwh"])

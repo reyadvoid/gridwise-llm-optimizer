@@ -15,5 +15,4 @@ EXPOSE 5000
 
 # Threads, not processes: each request spends most of its time waiting on the
 # LLM provider, and the LP solve is milliseconds.
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "8", \
-     "--timeout", "60", "--access-logfile", "-", "main:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 8 --timeout 60 --access-logfile - main:app"]

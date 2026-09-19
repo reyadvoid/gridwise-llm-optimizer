@@ -122,7 +122,13 @@ def method_not_allowed(_):
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("API_PORT", config.API_PORT))
+    port = int(
+        os.getenv(
+            "PORT",
+            os.getenv("API_PORT", config.API_PORT),
+        )
+    )
+
     # debug=False deliberately: a debugger in a public deployment would leak
     # stack traces and allow arbitrary code execution.
     app.run(host="0.0.0.0", port=port, debug=False)

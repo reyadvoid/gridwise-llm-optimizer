@@ -249,13 +249,35 @@ _FRACTIONS = {"half": 0.5, "one-fifth": 0.2, "a fifth": 0.2, "a third": 1 / 3,
 
 
 def _to_24h(value, meridiem, text_after):
-    hour = value % 12
-    if meridiem == "pm":
-        hour += 12
-    elif meridiem is None and re.search(r"\b(pm|evening|night)\b", text_after):
-        hour += 12
-    return hour % 24
+    """Convert a parsed hour into 24-hour format."""
 
+    value = int(value)
+
+    # Explicit AM/PM
+    if meridiem:
+        meridiem = meridiem.lower()
+
+        if meridiem == "am":
+            return 0 if value == 12 else value
+
+        if meridiem == "pm":
+            return 12 if value == 12 else value + 12
+
+    # Already written in 24-hour format, e.g. 13:00
+    if 13 <= value <= 23:
+        return value
+
+    # No explicit AM/PM: use nearby wording when possible.
+    text_after = (text_after or "").lower()
+
+    if re.search(r"\b(pm|afternoon|evening|night)\b", text_after):
+        if value < 12:
+            return value + 12
+
+    if value == 24:
+        return 0
+
+    return value
 
 def _find_window(text):
     """Best-effort start-inclusive / end-exclusive hour window."""

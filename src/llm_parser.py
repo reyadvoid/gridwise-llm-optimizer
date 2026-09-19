@@ -106,7 +106,7 @@ def _user_prompt(notes, battery):
 
 def _call_openai(system, user):
     """OpenAI, or any OpenAI-compatible endpoint via LLM_BASE_URL."""
-    from openai import OpenAI
+    from openai import OpenAI, APIStatusError
 
     client = OpenAI(
         api_key=config.LLM_API_KEY or "not-needed",
@@ -114,6 +114,7 @@ def _call_openai(system, user):
         timeout=config.LLM_TIMEOUT_SECONDS,
         max_retries=0,
     )
+
     kwargs = {
         "model": config.LLM_MODEL,
         "messages": [
@@ -123,15 +124,22 @@ def _call_openai(system, user):
         "temperature": config.LLM_TEMPERATURE,
         "max_tokens": config.LLM_MAX_TOKENS,
     }
+
     try:
         resp = client.chat.completions.create(
-            response_format={"type": "json_object"}, **kwargs
+            response_format={"type": "json_object"},
+            **kwargs,
         )
-    except Exception:
-        # Not every OpenAI-compatible server supports response_format.
-        resp = client.chat.completions.create(**kwargs)
-    return resp.choices[0].message.content or ""
 
+    except APIStatusError as exc:
+        # Some OpenAI-compatible providers do not support response_format.
+        # Retry without it only for a clear HTTP 400 compatibility error.
+        if exc.status_code != 400:
+            raise
+
+        resp = client.chat.completions.create(**kwargs)
+
+    return resp.choices[0].message.content or ""
 
 def _call_anthropic(system, user):
     import anthropic
